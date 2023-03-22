@@ -30,7 +30,7 @@ public:
             return y;
         }
 
-        float m_cutoff = 24000.f;
+        std::atomic<float> m_cutoff = 24000.f;
         float sampleRate = 48000.f;
     private:
         float s = 0.f;
@@ -39,7 +39,6 @@ public:
 
     void prepare(float fs, int frameExpected);
     void processceBlock(juce::AudioBuffer<float>& buffer);
-    void processceBlock(juce::AudioBuffer<float>& buffer, int sampleBegin, int numSamples);
 
     void setDryWet(float var) {
         m_wet.setTargetValue(var);
@@ -53,21 +52,20 @@ public:
     LPF m_leftDampLPF;
     LPF m_rightDampLPF;
 
-    juce::SmoothedValue<float> m_mix;
-    juce::SmoothedValue<float> m_DelayMix;
-    juce::SmoothedValue<float> m_feedback;
+    juce::SmoothedValue<float> m_mix = 0.f;
+    juce::SmoothedValue<float> m_DelayMix = 0.f;
+    juce::SmoothedValue<float> m_feedback = 0.f;
 
 private:
     float m_leftLastSample = 0.f;
     float m_rightLastSample = 0.f;
-
     std::vector<float> m_lcutoff;
     std::vector<float> m_rcutoff;
+    juce::AudioBuffer<float> m_dryBuffer;
 
 public:
-    juce::SmoothedValue<float> m_phaserNotches;
+    juce::SmoothedValue<float> m_phaserNotches = 0.f;
     juce::SmoothedValue<float> m_q = 0.71f;
     juce::SmoothedValue<float> m_dry = 1.f;
-    juce::SmoothedValue<float> m_wet;
-    juce::AudioBuffer<float> m_dryBuffer;
+    juce::SmoothedValue<float> m_wet = 0.f;
 };

@@ -81,7 +81,7 @@ public:
 
 	juce::AudioProcessorValueTreeState m_apvts;
 	SimplePhaser simpleFlangerTest;
-	bool isFollowBPM = true;
+	std::atomic<bool> isFollowBPM = true;
 
 	juce::RangedAudioParameter* paramBeginDelay;
 	juce::RangedAudioParameter* paramEndDelay;

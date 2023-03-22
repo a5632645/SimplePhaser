@@ -26,25 +26,17 @@ void SimplePhaser::prepare(float fs, int frameExpected)
 
 void SimplePhaser::processceBlock(juce::AudioBuffer<float>& buffer)
 {
-	processceBlock(buffer, 0, buffer.getNumSamples());
-}
+	auto numSample = buffer.getNumSamples();
+	float* lptr = buffer.getWritePointer(0);
+	float* rptr = buffer.getWritePointer(1);
 
-void SimplePhaser::processceBlock(juce::AudioBuffer<float>& buffer, int sampleBegin, int numSamples)
-{
 	//TODO: use juce::DryWet instead of manually apply
-	m_dryBuffer.copyFrom(0, sampleBegin, buffer.getReadPointer(0), numSamples);
-	m_dryBuffer.copyFrom(1, sampleBegin, buffer.getReadPointer(1), numSamples);
-	auto copyDry = m_dry;
-	copyDry.applyGain(m_dryBuffer.getWritePointer(0, sampleBegin), numSamples);
-	m_dry.applyGain(m_dryBuffer.getWritePointer(1, sampleBegin), numSamples);
-	//m_dry.applyGain(m_dryBuffer, m_dryBuffer.getNumSamples());
-
-	float* lptr = buffer.getWritePointer(0, sampleBegin);
-	float* rptr = buffer.getWritePointer(1, sampleBegin);
-
+	m_dryBuffer.copyFrom(0, 0, buffer.getReadPointer(0), numSample);
+	m_dryBuffer.copyFrom(1, 0, buffer.getReadPointer(1), numSample);
+	m_dry.applyGain(m_dryBuffer, numSample);
 	m_lfo.getDelayTimes(m_lcutoff, m_rcutoff);
 
-	for (int i = 0; i < numSamples; ++i)
+	for (int i = 0; i < numSample; ++i)
 	{
 		float delayMix = m_DelayMix.getNextValue();
 		float mix = m_mix.getNextValue();
@@ -59,10 +51,7 @@ void SimplePhaser::processceBlock(juce::AudioBuffer<float>& buffer, int sampleBe
 		rptr[i] = m_rightLastSample * delayMix + rptr[i] * mix;
 	}
 
-	//m_wet.applyGain(buffer, buffer.getNumSamples());
-	auto copyWet = m_wet;
-	copyWet.applyGain(buffer.getWritePointer(0, sampleBegin), numSamples);
-	m_wet.applyGain(buffer.getWritePointer(1, sampleBegin), numSamples);
-	buffer.addFrom(0, sampleBegin, m_dryBuffer.getReadPointer(0, sampleBegin), numSamples);
-	buffer.addFrom(1, sampleBegin, m_dryBuffer.getReadPointer(1, sampleBegin), numSamples);
+	m_wet.applyGain(buffer, numSample);
+	buffer.addFrom(0, 0, m_dryBuffer.getReadPointer(0), numSample);
+	buffer.addFrom(1, 0, m_dryBuffer.getReadPointer(1), numSample);
 }

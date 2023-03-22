@@ -16,7 +16,7 @@
 /*
 */
 class PhaseViewer  : public juce::Component,
-                            juce::Timer
+                     public juce::Timer
 {
 public:
     PhaseViewer(std::function<float(void)> left, std::function<float(void)> right);
@@ -40,7 +40,7 @@ private:
     std::function<float(void)> m_funGetLeft;
     std::function<float(void)> m_funGetRight;
 
-    float m_maxPhase = 20.f;
+    float m_maxPhase = 20000.f;
 
     static constexpr float kTextSize = 14.f;
     static constexpr float kPointSize = 10.f;

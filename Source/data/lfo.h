@@ -60,10 +60,6 @@ namespace DTSupportor {
 			setRate(m_bpm / 60.f / m_syncBPM * 0.1f);
 		}
 
-		float getSyncBPM() const {
-			return m_syncBPM;
-		}
-
 		void setRate(float newRate) {
 			m_rate.setTargetValue(newRate);
 		}
@@ -90,13 +86,15 @@ namespace DTSupportor {
 		juce::SmoothedValue<float> m_upperFrequency;
 		juce::SmoothedValue<float> m_stereoPhase;
 		juce::SmoothedValue<float> m_rate;
+		std::atomic<float> m_jitter = 0.f;
+		std::atomic<float> m_wtPos = 0.f;
+		std::atomic<float> m_syncBPM = 1.f;
+		// this value only change in sound thread so it is no need to be atomic
+		float m_bpm = 0.f;
+	private:
 		std::vector<float> m_lphase;
 		std::vector<float> m_rphase;
 		float m_sampleRate = 48000.f;
 		float m_lfoLPhase = 0.f;
-		float m_jitter = 0.f;
-		float m_wtPos = 0.f;
-		float m_bpm = 0.f;
-		float m_syncBPM = 1.f;
 	};
 }

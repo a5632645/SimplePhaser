@@ -16,24 +16,6 @@ public:
 	static constexpr auto kmaxNotches = 32;
 	static constexpr auto kNumAPF = kmaxNotches;
 
-	class APF {
-	public:
-		float process(float inputValue, float g) {
-			float s = LPF(inputValue, g);
-
-			return 2 * s - inputValue;
-		}
-	private:
-		float LPF(float inputValue, float g) {
-			auto v = g * (inputValue - sign1);
-			auto y = v + sign1;
-			sign1 = y + v;
-			return y;
-		}
-
-		float sign1 = 0.f;
-	};
-
 	//===================================================================================
 
 	struct filterCoefficents {
@@ -82,10 +64,6 @@ public:
 	}
 
 	void setParam(float cutoff, float q) {
-		auto g = float(std::tan(juce::MathConstants<double>::pi * cutoff / m_sampleRate));
-		m_g = g / (1 + g);
-
-		const double pi = 3.14159265358979323846;
 		m_cutoff = cutoff;
 		m_q = q;
 		double b0;
@@ -94,7 +72,7 @@ public:
 		double a0;
 		double a1;
 		double a2;
-		double w0 = 2 * pi * cutoff / m_sampleRate; // is this sr or sr/2 ?
+		double w0 = juce::MathConstants<double>::twoPi * cutoff / m_sampleRate;
 		double cosw0 = cos(w0);
 		double sinw0 = sin(w0);
 		double alpha = sinw0 * (2 * q);
@@ -114,24 +92,17 @@ public:
 	}
 
 	float process(float inputValue, float cutoff, int notch, float q) {
-		m_cutoff = cutoff;
-		m_q = q;
 		setParam(cutoff, q);
 		for (int i = 0; i < notch; i++) {
-			//inputValue = m_apfs[i].process(inputValue, m_g);
 			inputValue = m_apfs[i].process(inputValue, m_sharedCoefficent);
 		}
 		return inputValue;
 	}
 
 	float m_cutoff = 0.f;
+private:
 	float m_q = 0.71f;
 	float m_sampleRate = 0.f;
-private:
 	filterCoefficents m_sharedCoefficent;
-
-	//std::array<APF, kmaxNotches> m_apfs;
 	std::array<AllPassFilter, kNumAPF> m_apfs;
-
-	float m_g = 0.f;
 };

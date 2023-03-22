@@ -23,8 +23,6 @@ SimpleFlangerAudioProcessor::SimpleFlangerAudioProcessor()
 	m_apvts(*this, nullptr, juce::Identifier("SimpleFlangerAPVTS"), getParamLayout())
 #endif
 {
-	isFollowBPM = false;
-
 	paramBeginDelay = m_apvts.getParameter(SF_ID(PARAM_BEGIN_DELAY));
 	paramDryWet = m_apvts.getParameter(SF_ID(PARAM_DRYWET));
 	paramEndDelay = m_apvts.getParameter(SF_ID(PARAM_END_DELAY));
@@ -266,7 +264,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleFlangerAudioProcessor:
 	layout.add(std::make_unique<juce::AudioParameterFloat>(
 		SF_ID(PARAM_FEEDBACK),
 		PARAM_FEEDBACK,
-		juce::NormalisableRange<float>(-0.99f, 0.99f),
+		juce::NormalisableRange<float>(-0.999f, 0.999f, 0.001f),
 		0.f
 	));
 

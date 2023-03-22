@@ -39,7 +39,6 @@ SimpleFlangerAudioProcessorEditor::SimpleFlangerAudioProcessorEditor(SimpleFlang
 	setSize(620, 510);
 
 	addAndMakeVisible(m_phaseViewer);
-	m_phaseViewer.setMaxPhase(20000.f);
 
 	addAndMakeVisible(m_waveViewer);
 
@@ -62,7 +61,7 @@ SimpleFlangerAudioProcessorEditor::SimpleFlangerAudioProcessorEditor(SimpleFlang
 	addChildComponent(m_lfoRate);
 	m_lfoRate.setName("LFO Rate");
 	m_lfoRate.setColour(c, juce::Colours::mediumpurple);
-	addAndMakeVisible(m_syncLFORate);
+	addChildComponent(m_syncLFORate);
 	m_syncLFORate.setName("Sync Rate");
 	m_syncLFORate.setColour(c, juce::Colours::mediumpurple);
 	addAndMakeVisible(m_processedMix);
@@ -109,6 +108,8 @@ SimpleFlangerAudioProcessorEditor::SimpleFlangerAudioProcessorEditor(SimpleFlang
 			audioProcessor.parameterValueChanged(audioProcessor.paramLfoRate->getParameterIndex(), 0.f);
 		}
 	};
+	m_syncLFORate.setVisible(audioProcessor.isFollowBPM);
+	m_lfoRate.setVisible(!audioProcessor.isFollowBPM);
 }
 
 //==============================================================================
