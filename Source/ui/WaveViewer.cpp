@@ -12,7 +12,7 @@
 #include "WaveViewer.h"
 
 //==============================================================================
-WaveViewer::WaveViewer(DTSupportor::lfoSupportor& lfo)
+WaveViewer::WaveViewer(LFO& lfo)
 	:m_table(lfo)
 {
 	// In your constructor, you should add any child components, and
@@ -41,7 +41,7 @@ void WaveViewer::paint(juce::Graphics& g)
 	const int center = getHeight() / 2;
 	const int height = center - 4;
 	for (float& w : wavePoint) {
-		w = w * height + center;
+		w = center - w * height;
 	}
 
 	juce::Path p;

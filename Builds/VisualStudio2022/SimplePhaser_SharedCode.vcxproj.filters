@@ -2931,6 +2931,12 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\data\defines.h">
+      <Filter>SimplePhaser\Source\data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Source\data\functions.h">
+      <Filter>SimplePhaser\Source\data</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Source\data\lfo.h">
       <Filter>SimplePhaser\Source\data</Filter>
     </ClInclude>

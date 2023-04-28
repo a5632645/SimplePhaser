@@ -12,32 +12,37 @@
 
 #include <JuceHeader.h>
 
+#include "defines.h"
+
 class WaveTable {
 public:
 	WaveTable()
 	{
 		m_waves.resize(5);
 		for (auto& w : m_waves) {
-			w.resize(kPresetSize + 1);
+			w.resize(kPresetSize + 1uLL);
 		}
 
 		for (int i = 0; i < kPresetSize; ++i) {
-			m_waves[0][i] = -sinf(i / static_cast<float>(kPresetSize) * juce::MathConstants<float>::twoPi);
+			m_waves[0][i] = sinf(float(i) / static_cast<float>(kPresetSize) * juce::MathConstants<float>::twoPi);
 		}
 
 		for (int i = 0; i < kPresetSize; ++i) {
-			m_waves[1][i] = (acosf(sinf(i / static_cast<float>(kPresetSize) * juce::MathConstants<float>::twoPi)) / juce::MathConstants<float>::pi - 0.5f) * 2.f;
+			m_waves[1][i] = -(acosf(sinf(float(i) / static_cast<float>(kPresetSize) * juce::MathConstants<float>::twoPi)) / juce::MathConstants<float>::pi - 0.5f) * 2.f;
 		}
 
-		for (int i = 0; i < kPresetSize; ++i) {
-			m_waves[2][i] = (i / static_cast<float>(kPresetSize) - 0.5f) * 2.f;
+		for (int i = 0; i < kPresetSize / 2; ++i) {
+			m_waves[2][i] = i / static_cast<float>(kPresetSize / 2);
+		}
+		for (int i = kPresetSize / 2; i < kPresetSize; ++i) {
+			m_waves[2][i] = m_waves[2][static_cast<size_t>(i) - kPresetSize / 2] - 1.f;
 		}
 
 		for (int i = 0; i < kPresetSize; ++i) {
 			m_waves[3][i] = m_waves[0][i] > 0.0f ? 1.0f : -1.0f;
 		}
 
-		genNoise(64);
+		genNoise(defaultValues::npg);
 
 		for (auto& w : m_waves) {
 			w[kPresetSize] = w[0];
@@ -65,7 +70,7 @@ public:
 		auto wt = wtPos * (m_waves.size() - 2);
 
 		auto beforewt = (int)floor(wt);
-		auto intervalwt = wt - (int)beforewt;
+		auto intervalwt = wt - beforewt;
 		int nextwt = beforewt + 1;
 		nextwt = nextwt > 4 ? 4 : nextwt;
 

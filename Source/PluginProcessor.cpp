@@ -9,6 +9,32 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+static const std::array<float, 10> vals{
+	8,
+		4,
+		2,
+		1,
+		1 / 2.f,
+		1 / 3.f,
+		1 / 4.f,
+		1 / 8.f,
+		1 / 12.f,
+		1 / 16.f
+};
+
+static const std::array<juce::String, vals.size()> stringVals{
+	"8",
+		"4",
+		"2",
+		"1",
+		"1/2",
+		"1/3",
+		"1/4",
+		"1/8",
+		"1/12",
+		"1/16"
+};
+
 //==============================================================================
 SimpleFlangerAudioProcessor::SimpleFlangerAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -37,8 +63,11 @@ SimpleFlangerAudioProcessor::SimpleFlangerAudioProcessor()
 	paramFeedbackCutoff = m_apvts.getParameter(SF_ID(PARAM_DAMP));
 	paramPhaserNotches = m_apvts.getParameter(SF_ID(PARAM_PHASERSTATE));
 	paramQ = m_apvts.getParameter(SF_ID(PARAM_Q));
+	paramAPFcutoff = m_apvts.getParameter(SF_ID(PARAM_CUTOFF));
+	paramFBhighpass = m_apvts.getParameter(SF_ID(PARAM_FBHP));
 	paramSyncLFORate = dynamic_cast<juce::AudioParameterChoice*>(m_apvts.getParameter(SF_ID(PARAM_SYNCLFORATE)));
 	paramLFOFllowBPM = dynamic_cast<juce::AudioParameterBool*>(m_apvts.getParameter(SF_ID(PARAM_FOLLOWBPM)));
+	paramManual = dynamic_cast<juce::AudioParameterBool*>(m_apvts.getParameter(SF_ID(PARAM_MANUAL)));
 
 	paramBeginDelay->addListener(this);
 	paramDryWet->addListener(this);
@@ -55,8 +84,11 @@ SimpleFlangerAudioProcessor::SimpleFlangerAudioProcessor()
 	paramPhaserNotches->addListener(this);
 	paramQ->addListener(this);
 	paramSyncLFORate->addListener(this);
+	paramAPFcutoff->addListener(this);
+	paramFBhighpass->addListener(this);
 
 	paramLFOFllowBPM->addListener(this);
+	paramManual->addListener(this);
 }
 
 SimpleFlangerAudioProcessor::~SimpleFlangerAudioProcessor()
@@ -188,13 +220,10 @@ void SimpleFlangerAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 	// Alternatively, you can process the samples with the channels
 	// interleaved by keeping the same state.
 
-	if (isFollowBPM) {
-		auto head = getPlayHead()->getPosition();
-		if (head) {
-			auto bpm = head->getBpm();
-			if (bpm) {
-				simpleFlangerTest.m_lfo.setBPM(*bpm);
-			}
+	if (auto head = getPlayHead()->getPosition(); head) {
+		auto bpm = head->getBpm();
+		if (bpm) {
+			simpleFlangerTest.m_lfo.m_bpm = (float)*bpm;
 		}
 	}
 
@@ -238,19 +267,29 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleFlangerAudioProcessor:
 {
 	juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
+	namespace df = defaultValues;
+
 	layout.add(std::make_unique<juce::AudioParameterFloat>(
 		SF_ID(PARAM_BEGIN_DELAY),
 		PARAM_BEGIN_DELAY,
-		juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.3f),
-		0.f,
+		juce::NormalisableRange<float>(df::minFre, df::maxFre, 1.f, 0.174f),
+		df::minFre,
 		"hz"
 	));
 
 	layout.add(std::make_unique<juce::AudioParameterFloat>(
 		SF_ID(PARAM_END_DELAY),
 		PARAM_END_DELAY,
-		juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.3f),
-		0.f,
+		juce::NormalisableRange<float>(df::minFre, df::maxFre, 1.f, 0.174f),
+		df::maxFre,
+		"hz"
+	));
+
+	layout.add(std::make_unique<juce::AudioParameterFloat>(
+		SF_ID(PARAM_CUTOFF),
+		PARAM_CUTOFF,
+		juce::NormalisableRange<float>(df::minFre, df::maxFre, 1.f, 0.174f),
+		df::cutoff,
 		"hz"
 	));
 
@@ -258,21 +297,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleFlangerAudioProcessor:
 		SF_ID(PARAM_DRYWET),
 		PARAM_DRYWET,
 		juce::NormalisableRange<float>(0.f, 1.f),
-		0.f
+		df::drywet
 	));
 
 	layout.add(std::make_unique<juce::AudioParameterFloat>(
 		SF_ID(PARAM_FEEDBACK),
 		PARAM_FEEDBACK,
-		juce::NormalisableRange<float>(-0.999f, 0.999f, 0.001f),
-		0.f
+		juce::NormalisableRange<float>(-0.99f, 0.99f, 0.01f),
+		df::fb
 	));
 
 	layout.add(std::make_unique<juce::AudioParameterFloat>(
 		SF_ID(PARAM_LFORATE),
 		PARAM_LFORATE,
-		juce::NormalisableRange<float>(0.f,10.f,0.002f,0.3f),
-		0.f,
+		juce::NormalisableRange<float>(0.f, 10.f, 0.002f, 0.3f),
+		df::lfoRate,
 		"hz"
 	));
 
@@ -280,21 +319,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleFlangerAudioProcessor:
 		SF_ID(PARAM_PROCESSEDMIX),
 		PARAM_PROCESSEDMIX,
 		juce::NormalisableRange<float>(-1.f, 1.f),
-		0.f
+		df::wet
 	));
 
 	layout.add(std::make_unique<juce::AudioParameterFloat>(
 		SF_ID(PARAM_RAWMIX),
 		PARAM_RAWMIX,
 		juce::NormalisableRange<float>(0.f, 1.f),
-		0.f
+		df::raw
 	));
 
 	layout.add(std::make_unique<juce::AudioParameterFloat>(
 		SF_ID(PARAM_WIDEPHASE),
 		PARAM_WIDEPHASE,
 		juce::NormalisableRange<float>(0.f, 360.f),
-		0.f,
+		df::phase,
 		"degree"
 	));
 
@@ -302,56 +341,70 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleFlangerAudioProcessor:
 		SF_ID(PARAM_WAVETABLEPOS),
 		PARAM_WAVETABLEPOS,
 		juce::NormalisableRange<float>(0.f, 1.f),
-		0.f
+		df::wtpos
 	));
 
 	layout.add(std::make_unique<juce::AudioParameterFloat>(
 		SF_ID(PARAM_NOISEGEN),
 		PARAM_NOISEGEN,
-		juce::NormalisableRange<float>(1.f, 512.f, 1.f, 0.3f),
-		64.f
+		juce::NormalisableRange<float>(df::minNoiseGen, df::maxNoiseGen, 1.f),
+		df::npg
 	));
 
 	layout.add(std::make_unique<juce::AudioParameterFloat>(
 		SF_ID(PARAM_NOISEJITTER),
 		PARAM_NOISEJITTER,
 		juce::NormalisableRange<float>(0.f, 1.f),
-		0.f
+		df::nj
 	));
 
 	layout.add(std::make_unique<juce::AudioParameterFloat>(
 		SF_ID(PARAM_DAMP),
 		PARAM_DAMP,
-		juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.3f),
-		20000.f,
+		juce::NormalisableRange<float>(df::minFre, df::maxFre, 1.f, 0.174f),
+		df::fblp,
+		"hz"
+	));
+
+	layout.add(std::make_unique<juce::AudioParameterFloat>(
+		SF_ID(PARAM_FBHP),
+		PARAM_FBHP,
+		juce::NormalisableRange<float>(df::minFre, df::maxFre, 1.f, 0.174f),
+		df::fbhp,
 		"hz"
 	));
 
 	layout.add(std::make_unique<juce::AudioParameterFloat>(
 		SF_ID(PARAM_PHASERSTATE),
 		PARAM_PHASERSTATE,
-		juce::NormalisableRange<float>(0.f, MonoAPFArray::kmaxNotches, 1.f),
-		0.f
+		juce::NormalisableRange<float>(0.f, df::maxNumNotches, 1.f),
+		df::pn
 	));
 
 	layout.add(std::make_unique<juce::AudioParameterFloat>(
 		SF_ID(PARAM_Q),
 		PARAM_Q,
-		juce::NormalisableRange<float>(0.005f, 10.f, 0.001f, 0.3f),
-		0.71f
+		juce::NormalisableRange<float>(0.01f, 10.f, 0.01f, 0.3f),
+		df::apfq
 	));
 
 	layout.add(std::make_unique<juce::AudioParameterChoice>(
 		SF_ID(PARAM_SYNCLFORATE),
 		PARAM_SYNCLFORATE,
-		juce::StringArray({ "8","4","2","1","1/2","1/4","1/8","1/16" }),
+		juce::StringArray(stringVals.data(), stringVals.size()),
 		3
 	));
 
 	layout.add(std::make_unique<juce::AudioParameterBool>(
 		SF_ID(PARAM_FOLLOWBPM),
 		PARAM_FOLLOWBPM,
-		false
+		df::bpmfollow
+	));
+
+	layout.add(std::make_unique<juce::AudioParameterBool>(
+		SF_ID(PARAM_MANUAL),
+		PARAM_MANUAL,
+		df::manual
 	));
 
 	return layout;
@@ -363,14 +416,14 @@ void SimpleFlangerAudioProcessor::parameterValueChanged(int parameterIndex, floa
 
 	if (parameterIndex == paramBeginDelay->getParameterIndex()) {
 		auto val = paramBeginDelay->convertFrom0to1(paramBeginDelay->getValue());
-		s.m_lfo.m_belowFrequency = val;
+		s.m_lfo.setMin(val);
 	}
 	else if (parameterIndex == paramDryWet->getParameterIndex()) {
 		s.setDryWet(paramDryWet->getValue());
 	}
 	else if (parameterIndex == paramEndDelay->getParameterIndex()) {
 		auto val = paramEndDelay->convertFrom0to1(paramEndDelay->getValue());
-		s.m_lfo.m_upperFrequency = val;
+		s.m_lfo.setMax(val);
 	}
 	else if (parameterIndex == paramFeedback->getParameterIndex()) {
 		auto val = paramFeedback->convertFrom0to1(paramFeedback->getValue());
@@ -378,7 +431,7 @@ void SimpleFlangerAudioProcessor::parameterValueChanged(int parameterIndex, floa
 	}
 	else if (parameterIndex == paramLfoRate->getParameterIndex()) {
 		auto val = paramLfoRate->convertFrom0to1(paramLfoRate->getValue());
-		s.m_lfo.setRate(val);
+		s.m_lfo.m_rate = val;
 	}
 	else if (parameterIndex == paramProcessedMix->getParameterIndex()) {
 		auto val = paramProcessedMix->convertFrom0to1(paramProcessedMix->getValue());
@@ -389,7 +442,7 @@ void SimpleFlangerAudioProcessor::parameterValueChanged(int parameterIndex, floa
 		s.m_mix = val * 0.5f;
 	}
 	else if (parameterIndex == paramWidePhase->getParameterIndex()) {
-		s.m_lfo.setPhase(paramWidePhase->getValue());
+		s.m_lfo.m_stereoPhase = paramWidePhase->getValue();
 	}
 	else if (parameterIndex == paramWaveTablePos->getParameterIndex()) {
 		s.m_lfo.m_wtPos = paramWaveTablePos->getValue();
@@ -415,14 +468,20 @@ void SimpleFlangerAudioProcessor::parameterValueChanged(int parameterIndex, floa
 		s.m_q = q;
 	}
 	else if (parameterIndex == paramLFOFllowBPM->getParameterIndex()) {
-		isFollowBPM = paramLFOFllowBPM->get();
+		s.m_lfo.m_bSyncBPM = paramLFOFllowBPM->get();
 	}
 	else if (parameterIndex == paramSyncLFORate->getParameterIndex()) {
-		if (!isFollowBPM) return;
-
-		static std::array<float, 8> vals{8, 4, 2, 1, 1 / 2.f, 1 / 4.f, 1 / 8.f, 1 / 16.f};
-		auto val = vals.at(paramSyncLFORate->getIndex());
-		s.m_lfo.setBPMRate(val);
+		auto val = vals[paramSyncLFORate->getIndex()];
+		s.m_lfo.m_bpmRate = val;
+	}
+	else if (parameterIndex == paramAPFcutoff->getParameterIndex()) {
+		s.m_cutoff.setTargetValue(paramAPFcutoff->convertFrom0to1(paramAPFcutoff->getValue()));
+	}
+	else if (parameterIndex == paramManual->getParameterIndex()) {
+		s.m_noModular = paramManual->get();
+	}
+	else if (parameterIndex == paramFBhighpass->getParameterIndex()) {
+		s.m_FBhighPassFilter.setCutOffFrequency(paramFBhighpass->convertFrom0to1(paramFBhighpass->getValue()));
 	}
 }
 

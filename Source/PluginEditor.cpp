@@ -28,14 +28,16 @@ SimpleFlangerAudioProcessorEditor::SimpleFlangerAudioProcessorEditor(SimpleFlang
 	m_numNoiseGen(audioProcessor.paramNumNoiseGen),
 	m_noiseJitter(audioProcessor.paramNoiseJitter),
 	m_feedbackDamp(audioProcessor.paramFeedbackCutoff),
+	m_FBhighpass(audioProcessor.paramFBhighpass),
 	m_phaserNotch(audioProcessor.paramPhaserNotches),
 	m_notchDisperse(audioProcessor.paramQ),
 	m_syncLFORate(audioProcessor.paramSyncLFORate),
-	m_followBPM(audioProcessor.paramLFOFllowBPM)
+	m_manualAPFcutoff(audioProcessor.paramAPFcutoff),
+	m_followBPM(audioProcessor.paramLFOFllowBPM),
+	m_manualCutoff(audioProcessor.paramManual)
 {
 	// Make sure that before the constructor has finished, you've set the
 	// editor's size to whatever you need it to be.
-	
 	setSize(620, 510);
 
 	addAndMakeVisible(m_phaseViewer);
@@ -52,6 +54,15 @@ SimpleFlangerAudioProcessorEditor::SimpleFlangerAudioProcessorEditor(SimpleFlang
 	addAndMakeVisible(m_endDelay);
 	m_endDelay.setName("MaxFrequency");
 	m_endDelay.setColour(c, juce::Colours::green);
+	addAndMakeVisible(m_manualAPFcutoff);
+	m_manualAPFcutoff.setName("CenterFrequency");
+	m_manualAPFcutoff.setColour(c, juce::Colours::green);
+
+	m_beginDelay.setVisible(!audioProcessor.simpleFlangerTest.m_noModular);
+	m_endDelay.setVisible(!audioProcessor.simpleFlangerTest.m_noModular);
+	m_manualAPFcutoff.setVisible(audioProcessor.simpleFlangerTest.m_noModular);
+	m_widePhase.setVisible(!audioProcessor.simpleFlangerTest.m_noModular);
+
 	addAndMakeVisible(m_drywet);
 	m_drywet.setName("DryWet");
 	m_drywet.setColour(c, juce::Colours::pink);
@@ -64,6 +75,10 @@ SimpleFlangerAudioProcessorEditor::SimpleFlangerAudioProcessorEditor(SimpleFlang
 	addChildComponent(m_syncLFORate);
 	m_syncLFORate.setName("Sync Rate");
 	m_syncLFORate.setColour(c, juce::Colours::mediumpurple);
+
+	m_syncLFORate.setVisible(audioProcessor.simpleFlangerTest.m_lfo.m_bSyncBPM);
+	m_lfoRate.setVisible(!audioProcessor.simpleFlangerTest.m_lfo.m_bSyncBPM);
+
 	addAndMakeVisible(m_processedMix);
 	m_processedMix.setName("ProcessedMix");
 	m_processedMix.setColour(c, juce::Colours::pink);
@@ -83,11 +98,16 @@ SimpleFlangerAudioProcessorEditor::SimpleFlangerAudioProcessorEditor(SimpleFlang
 	m_numNoiseGen.onValueChange = [this]() { m_waveViewer.repaint(); };
 	addAndMakeVisible(m_noiseJitter);
 	m_noiseJitter.setColour(c, juce::Colours::darkcyan);
-	m_noiseJitter.setName("Noise Jitter");
+	m_noiseJitter.setName("Noise Level");
 	m_noiseJitter.onValueChange = [this]() { m_waveViewer.repaint(); };
+
 	addAndMakeVisible(m_feedbackDamp);
-	m_feedbackDamp.setName("Damp");
+	m_feedbackDamp.setName("FB Lowpass");
 	m_feedbackDamp.setColour(c, juce::Colours::mediumvioletred);
+	addAndMakeVisible(m_FBhighpass);
+	m_FBhighpass.setName("FB Highpass");
+	m_FBhighpass.setColour(c, juce::Colours::mediumvioletred);
+
 	addAndMakeVisible(m_phaserNotch);
 	m_phaserNotch.setName("Notches");
 	m_phaserNotch.setColour(c, juce::Colours::yellowgreen);
@@ -98,18 +118,23 @@ SimpleFlangerAudioProcessorEditor::SimpleFlangerAudioProcessorEditor(SimpleFlang
 	addAndMakeVisible(m_followBPM);
 	m_followBPM.setButtonText("Sync Bpm");
 	m_followBPM.onStateChange = [this]() {
-		m_syncLFORate.setVisible(audioProcessor.isFollowBPM);
-		m_lfoRate.setVisible(!audioProcessor.isFollowBPM);
-
-		if (audioProcessor.isFollowBPM) {
-			audioProcessor.parameterValueChanged(audioProcessor.paramSyncLFORate->getParameterIndex(), 0.f);
-		}
-		else {
-			audioProcessor.parameterValueChanged(audioProcessor.paramLfoRate->getParameterIndex(), 0.f);
-		}
+		auto follow = audioProcessor.paramLFOFllowBPM->get();
+		m_syncLFORate.setVisible(follow);
+		m_lfoRate.setVisible(!follow);
 	};
-	m_syncLFORate.setVisible(audioProcessor.isFollowBPM);
-	m_lfoRate.setVisible(!audioProcessor.isFollowBPM);
+
+	addAndMakeVisible(m_manualCutoff);
+	m_manualCutoff.setButtonText("Manual");
+	m_manualCutoff.onStateChange = [this] {
+		bool noModular = audioProcessor.paramManual->get();
+		m_beginDelay.setVisible(!noModular);
+		m_endDelay.setVisible(!noModular);
+		m_manualAPFcutoff.setVisible(noModular);
+		m_widePhase.setVisible(!noModular);
+	};
+
+	m_manualCutoff.onStateChange();
+	m_followBPM.onStateChange();
 }
 
 //==============================================================================
@@ -126,11 +151,13 @@ void SimpleFlangerAudioProcessorEditor::resized()
 	// subcomponents in your editor..
 	m_presetWindows.setBounds(0, 0, getWidth(), 30);
 
-	m_phaseViewer.setBounds(0, 30, getWidth(), 40);
+	m_phaseViewer.setBounds(0, 30, getWidth(), 30);
 
 	// frequency controls
-	m_beginDelay.setBounds(0, 90, 100, 100);
-	m_endDelay.setBounds(0, 200, 100, 100);
+	m_manualCutoff.setBounds(0, 90, 100, 30);
+	m_beginDelay.setBounds(0, 120, 100, 100);
+	m_endDelay.setBounds(0, 230, 100, 100);
+	m_manualAPFcutoff.setBounds(0, 120, 100, 100);
 
 	// mix controls
 	m_rawMix.setBounds(120, 90, 80, 80);
@@ -143,7 +170,8 @@ void SimpleFlangerAudioProcessorEditor::resized()
 
 	// feedback controls
 	m_feedback.setBounds(320, 90, 100, 100);
-	m_feedbackDamp.setBounds(320, 200, 100, 100);
+	m_feedbackDamp.setBounds(330, 200, 80, 80);
+	m_FBhighpass.setBounds(330, 280, 80, 80);
 
 	// lfo basic controls
 	m_waveTablePos.setBounds(430, 90, 80, 80);

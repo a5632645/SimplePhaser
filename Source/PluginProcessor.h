@@ -10,25 +10,10 @@
 
 #include <JuceHeader.h>
 
+#include "data/defines.h"
 #include "data/SimplePhaser.h"
 
 #define SF_ID(x) "IDSF_"##x
-#define PARAM_BEGIN_DELAY "minFreqeuncy"
-#define PARAM_END_DELAY  "maxFrequency"
-#define PARAM_FEEDBACK "feedback"
-#define PARAM_LFORATE "lfoRate"
-#define PARAM_SYNCLFORATE "syncLfoRate"
-#define PARAM_DRYWET "dryWet"
-#define PARAM_RAWMIX "rawMix"
-#define PARAM_PROCESSEDMIX "processedMix"
-#define PARAM_WIDEPHASE "widePhase"
-#define PARAM_WAVETABLEPOS "waveTablePosition"
-#define PARAM_NOISEGEN "numNoiseGen"
-#define PARAM_NOISEJITTER "noiseJitter"
-#define PARAM_DAMP "feedbackCutoff"
-#define PARAM_PHASERSTATE "phaserNotches"
-#define PARAM_Q "Q"
-#define PARAM_FOLLOWBPM "lfoFollowBPM"
 
 //==============================================================================
 /**
@@ -81,7 +66,6 @@ public:
 
 	juce::AudioProcessorValueTreeState m_apvts;
 	SimplePhaser simpleFlangerTest;
-	std::atomic<bool> isFollowBPM = true;
 
 	juce::RangedAudioParameter* paramBeginDelay;
 	juce::RangedAudioParameter* paramEndDelay;
@@ -97,8 +81,11 @@ public:
 	juce::RangedAudioParameter* paramFeedbackCutoff;
 	juce::RangedAudioParameter* paramPhaserNotches;
 	juce::RangedAudioParameter* paramQ;
+	juce::RangedAudioParameter* paramAPFcutoff;
+	juce::RangedAudioParameter* paramFBhighpass;
 	juce::AudioParameterChoice* paramSyncLFORate;
 	juce::AudioParameterBool* paramLFOFllowBPM;
+	juce::AudioParameterBool* paramManual;
 
 	void parameterValueChanged(int parameterIndex, float newValue) override;
 	void parameterGestureChanged(int parameterIndex, bool gestureIsStarting) override;

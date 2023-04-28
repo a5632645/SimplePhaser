@@ -30,19 +30,10 @@ public:
     }
 
     //==============================================================================
-    void setMaxPhase(const float newMax)
-    {
-        m_maxPhase = newMax;
-    }
-
-    //==============================================================================
 private:
     std::function<float(void)> m_funGetLeft;
     std::function<float(void)> m_funGetRight;
 
-    float m_maxPhase = 20000.f;
-
-    static constexpr float kTextSize = 14.f;
     static constexpr float kPointSize = 10.f;
     static constexpr float kInterValFractor = 0.1f;
 

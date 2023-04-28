@@ -9,92 +9,98 @@
 */
 
 #pragma once
+
+#include "defines.h"
+#include "functions.h"
 #include "waveTable.h"
 
-namespace DTSupportor {
-	class lfoSupportor {
-	public:
-		WaveTable tableTest;
-		//==============================================================================
+class LFO {
+public:
+	WaveTable tableTest;
 
-		void getDelayTimes(std::vector<float>& left, std::vector<float>& right) {
-			const juce::ScopedLock lm(tableTest.m_mutex);
+	//==============================================================================
 
-			auto frame = (int)left.size();
+	void getDelayTimes(std::vector<float>& left, std::vector<float>& right) {
+		const juce::ScopedLock lm(tableTest.m_mutex);
 
+		auto frame = (int)left.size();
+
+		if (m_bSyncBPM) {
 			for (int i = 0; i < frame; ++i) {
 				m_rphase[i] = fmodf(m_lfoLPhase + m_stereoPhase.getNextValue() + 1.f, 1.f);
 				m_lphase[i] = m_lfoLPhase;
 
-				updatePhase();
+				float rate = m_bpm / 60.f / m_bpmRate.getNextValue() * 0.1f;
+
+				m_lfoLPhase += rate / m_sampleRate;
+				while (m_lfoLPhase > 1.f)
+					m_lfoLPhase -= 1.f;
 			}
-
-			tableTest.getNextBlock(m_jitter, m_wtPos, m_lphase, left);
-			tableTest.getNextBlock(m_jitter, m_wtPos, m_rphase, right);
-
+		}
+		else {
 			for (int i = 0; i < frame; ++i) {
-				float begin = m_belowFrequency.getNextValue();
-				float end = m_upperFrequency.getNextValue();
-				float range = end - begin;
+				m_rphase[i] = fmodf(m_lfoLPhase + m_stereoPhase.getNextValue() + 1.f, 1.f);
+				m_lphase[i] = m_lfoLPhase;
 
-				left[i] = (left[i] + 1.f) * 0.5f * range + begin;
-				right[i] = (right[i] + 1.f) * 0.5f * range + begin;
+				m_lfoLPhase += m_rate.getNextValue() / m_sampleRate;
+				while (m_lfoLPhase > 1.f)
+					m_lfoLPhase -= 1.f;
 			}
 		}
 
-		void prepare(float fs, int frameExcept) {
-			m_sampleRate = fs;
+		tableTest.getNextBlock(m_jitter, m_wtPos, m_lphase, left);
+		tableTest.getNextBlock(m_jitter, m_wtPos, m_rphase, right);
 
-			m_lphase.resize(frameExcept);
-			m_rphase.resize(frameExcept);
+		for (int i = 0; i < frame; ++i) {
+			float begin = m_minSt.getNextValue();
+			float end = m_maxSt.getNextValue();
+			float range = end - begin;
+
+			// get st values
+			left[i] = (left[i] + 1.f) * 0.5f * range + begin;
+			right[i] = (right[i] + 1.f) * 0.5f * range + begin;
+
+			// st to frequency
+			m_leftOut = semitoneToHz(left[i]);
+			m_rightOut = semitoneToHz(right[i]);
+			left[i] = m_leftOut.getCurrentValue();
+			right[i] = m_rightOut.getCurrentValue();
 		}
+	}
 
-		//==============================================================================
-		void setBPMRate(float val) {
-			m_syncBPM = val;
-			setRate(m_bpm / 60.f / m_syncBPM * 0.1f);
-		}
+	void prepare(float fs, int frameExcept) {
+		m_sampleRate = fs;
 
-		void setBPM(float bpm) {
-			m_bpm = bpm;
-			setRate(m_bpm / 60.f / m_syncBPM * 0.1f);
-		}
+		m_lphase.resize(frameExcept);
+		m_rphase.resize(frameExcept);
+		m_leftOut.reset(defaultValues::step);
+		m_rightOut.reset(defaultValues::step);
+	}
 
-		void setRate(float newRate) {
-			m_rate.setTargetValue(newRate);
-		}
+	void setMin(float fre) {
+		m_minSt = hzToSemitone(fre);
+	}
 
-		float getRate()const {
-			return m_rate.getTargetValue();
-		}
+	void setMax(float fre) {
+		m_maxSt = hzToSemitone(fre);
+	}
 
-		void setPhase(float p) {
-			m_stereoPhase.setTargetValue(p);
-		}
-
-		float getPhase() const {
-			return m_stereoPhase.getTargetValue();
-		}
-
-		void updatePhase() {
-			m_lfoLPhase += m_rate.getNextValue() / m_sampleRate;
-			while (m_lfoLPhase > 1.f)
-				m_lfoLPhase -= 1.f;
-		}
-
-		juce::SmoothedValue<float> m_belowFrequency;
-		juce::SmoothedValue<float> m_upperFrequency;
-		juce::SmoothedValue<float> m_stereoPhase;
-		juce::SmoothedValue<float> m_rate;
-		std::atomic<float> m_jitter = 0.f;
-		std::atomic<float> m_wtPos = 0.f;
-		std::atomic<float> m_syncBPM = 1.f;
-		// this value only change in sound thread so it is no need to be atomic
-		float m_bpm = 0.f;
-	private:
-		std::vector<float> m_lphase;
-		std::vector<float> m_rphase;
-		float m_sampleRate = 48000.f;
-		float m_lfoLPhase = 0.f;
-	};
-}
+	//==============================================================================
+	juce::SmoothedValue<float> m_stereoPhase = defaultValues::phase;
+	juce::SmoothedValue<float> m_rate = defaultValues::lfoRate;
+	juce::SmoothedValue<float> m_bpmRate = defaultValues::syncRate;
+	std::atomic<float> m_jitter = defaultValues::nj;
+	std::atomic<float> m_wtPos = defaultValues::wtpos;
+	std::atomic<bool> m_bSyncBPM = defaultValues::bpmfollow;
+	// this value only change in sound thread so it is no need to be atomic
+	float m_bpm = defaultValues::bpm;
+private:
+	juce::SmoothedValue<float> m_maxSt = hzToSemitone(defaultValues::maxFre);
+	juce::SmoothedValue<float> m_minSt = hzToSemitone(defaultValues::minFre);
+	juce::SmoothedValue<float> m_leftOut;
+	juce::SmoothedValue<float> m_rightOut;
+	std::vector<float> m_lphase;
+	std::vector<float> m_rphase;
+	float m_sampleRate = 48000.f;
+	float m_lfoLPhase = 0.f;
+};

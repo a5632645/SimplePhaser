@@ -104,8 +104,6 @@ namespace simpleFlanger {
 			}
 
 			// some texts
-			g.drawText(juce::String(slider.getMinimum()), textBound, juce::Justification::bottomLeft);
-			g.drawText(juce::String(slider.getMaximum()), textBound, juce::Justification::bottomRight);
 			g.drawText(slider.getName(), textBound, juce::Justification::centredTop);
 		}
 
@@ -125,8 +123,6 @@ namespace simpleFlanger {
 				tickBounds.reduce(4.f, 4.f);
 				g.setColour(button.findColour(juce::ToggleButton::tickColourId));
 				g.fillRect(tickBounds);
-				//auto tick = getTickShape(0.75f);
-				//g.fillPath(tick, tick.getTransformToScaleToFit(tickBounds.reduced(4, 5).toFloat(), false));
 			}
 
 			g.setColour(button.findColour(juce::ToggleButton::textColourId));

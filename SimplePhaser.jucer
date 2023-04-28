@@ -7,6 +7,8 @@
   <MAINGROUP id="BtCY69" name="SimplePhaser">
     <GROUP id="{0BE7F434-14EC-33B4-62F5-9161E4A7C768}" name="Source">
       <GROUP id="{CB1C9C83-7317-5C63-CAA0-83B3911AC5CE}" name="data">
+        <FILE id="jjNQkS" name="defines.h" compile="0" resource="0" file="Source/data/defines.h"/>
+        <FILE id="LOPIXc" name="functions.h" compile="0" resource="0" file="Source/data/functions.h"/>
         <FILE id="LOI4YW" name="lfo.h" compile="0" resource="0" file="Source/data/lfo.h"/>
         <FILE id="RA2WiQ" name="MonoAPFArray.h" compile="0" resource="0" file="Source/data/MonoAPFArray.h"/>
         <FILE id="tcseXm" name="SimplePhaser.cpp" compile="1" resource="0"

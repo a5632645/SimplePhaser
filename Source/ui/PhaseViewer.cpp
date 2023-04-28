@@ -10,6 +10,11 @@
 
 #include <JuceHeader.h>
 #include "PhaseViewer.h"
+#include "../data/lfo.h"
+
+static const float st0hz     = hzToSemitone(19.f);
+static const float st20000hz = hzToSemitone(20001.f);
+static const float width     = st20000hz - st0hz;
 
 //==============================================================================
 PhaseViewer::PhaseViewer(std::function<float(void)> left, std::function<float(void)> right)
@@ -18,7 +23,7 @@ PhaseViewer::PhaseViewer(std::function<float(void)> left, std::function<float(vo
     // In your constructor, you should add any child components, and
     // initialise any special settings that your component needs.
 
-    startTimerHz(15);
+    startTimerHz(25);
 }
 
 PhaseViewer::~PhaseViewer()
@@ -38,18 +43,15 @@ void PhaseViewer::paint (juce::Graphics& g)
     float lCurrent = m_funGetLeft();
     float rCurrent = m_funGetRight();
 
-    lCurrent = juce::jlimit(0.f, m_maxPhase, lCurrent) / m_maxPhase;
-    rCurrent = juce::jlimit(0.f, m_maxPhase, rCurrent) / m_maxPhase;
+    lCurrent = hzToSemitone(lCurrent);
+    rCurrent = hzToSemitone(rCurrent);
+
+    lCurrent = (lCurrent - st0hz) / width;
+    rCurrent = (rCurrent - st0hz) / width;
 
     auto bound = getLocalBounds();
-    bound.removeFromBottom(kTextSize);
 
     float interval = bound.getHeight() * kInterValFractor / 2.f;
-
-    // the texts
-    g.setColour(juce::Colours::white);
-    g.drawSingleLineText("0", bound.getX(), bound.getBottom() + kTextSize - 2.f);
-    g.drawSingleLineText(juce::String(m_maxPhase), bound.getRight() - 3 * kTextSize, bound.getBottom() + kTextSize - 2.f);
 
     // the two rects
     float pointHeight = bound.getHeight() / 2.f - interval;
@@ -71,7 +73,6 @@ void PhaseViewer::paint (juce::Graphics& g)
 
     // frameworks
     bound = getLocalBounds();
-    bound.removeFromBottom(kTextSize);
 
     g.setColour(juce::Colours::grey);
     g.drawRect(lrec);

@@ -47,11 +47,14 @@ private:
     simpleFlanger::Knob m_numNoiseGen;
     simpleFlanger::Knob m_noiseJitter;
     simpleFlanger::Knob m_feedbackDamp;
+    simpleFlanger::Knob m_FBhighpass;
     simpleFlanger::Knob m_phaserNotch;
     simpleFlanger::Knob m_notchDisperse;
     simpleFlanger::Knob m_syncLFORate;
+    simpleFlanger::Knob m_manualAPFcutoff;
 
     simpleFlanger::choiceButton m_followBPM;
+    simpleFlanger::choiceButton m_manualCutoff;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleFlangerAudioProcessorEditor)
 };

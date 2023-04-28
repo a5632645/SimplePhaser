@@ -20,12 +20,12 @@
 class WaveViewer  : public juce::Component
 {
 public:
-    explicit WaveViewer(DTSupportor::lfoSupportor& lfo);
+    explicit WaveViewer(LFO& lfo);
     ~WaveViewer() override = default;
 
     void paint (juce::Graphics&) override;
 
 private:
-    DTSupportor::lfoSupportor& m_table;
+    LFO& m_table;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (WaveViewer)
 };

@@ -11,13 +11,10 @@
 #pragma once
 #include <JuceHeader.h>
 
+#include "defines.h"
+
 class MonoAPFArray {
 public:
-	static constexpr auto kmaxNotches = 32;
-	static constexpr auto kNumAPF = kmaxNotches;
-
-	//===================================================================================
-
 	struct filterCoefficents {
 		double c0;
 		double c1;
@@ -60,12 +57,12 @@ public:
 
 	void prepare(float fs, int /*frameExpected*/) {
 		m_sampleRate = fs;
-		setParam(m_cutoff, m_q);
+		setParam(m_cutoff, defaultValues::apfq);
 	}
 
 	void setParam(float cutoff, float q) {
 		m_cutoff = cutoff;
-		m_q = q;
+		double m_q = q;
 		double b0;
 		double b1;
 		double b2;
@@ -93,16 +90,17 @@ public:
 
 	float process(float inputValue, float cutoff, int notch, float q) {
 		setParam(cutoff, q);
+
 		for (int i = 0; i < notch; i++) {
 			inputValue = m_apfs[i].process(inputValue, m_sharedCoefficent);
 		}
+
 		return inputValue;
 	}
 
-	float m_cutoff = 0.f;
+	float m_cutoff = defaultValues::cutoff;
 private:
-	float m_q = 0.71f;
 	float m_sampleRate = 0.f;
 	filterCoefficents m_sharedCoefficent;
-	std::array<AllPassFilter, kNumAPF> m_apfs;
+	std::array<AllPassFilter, defaultValues::maxNumNotches> m_apfs;
 };

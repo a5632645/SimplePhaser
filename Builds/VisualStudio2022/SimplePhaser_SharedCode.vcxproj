@@ -2319,6 +2319,8 @@
     <ClCompile Include="..\..\JuceLibraryCode\include_juce_gui_extra.cpp"/>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\Source\data\defines.h"/>
+    <ClInclude Include="..\..\Source\data\functions.h"/>
     <ClInclude Include="..\..\Source\data\lfo.h"/>
     <ClInclude Include="..\..\Source\data\MonoAPFArray.h"/>
     <ClInclude Include="..\..\Source\data\SimplePhaser.h"/>
